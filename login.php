@@ -1,18 +1,21 @@
 <?php
 ob_start();
 session_start();
-// Static users array for demo (in-memory, resets on reload)
+
+// Static users for demo
 if (!isset($_SESSION['users'])) {
     $_SESSION['users'] = [
         ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
         ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
     ];
 }
+
 $error = '';
 if (isset($_POST['login'])) {
     $email = $_POST['email'];
     $password = $_POST['password'];
     $found = false;
+
     foreach ($_SESSION['users'] as $user) {
         if ($user['email'] === $email && password_verify($password, $user['password'])) {
             $_SESSION['user'] = $user;
@@ -20,8 +23,8 @@ if (isset($_POST['login'])) {
             break;
         }
     }
+
     if ($found) {
-        // Add a notification
         if (!isset($_SESSION['notifications'])) $_SESSION['notifications'] = [];
         $_SESSION['notifications'][] = ["user_email" => $email, "message" => "Logged in!"];
         header("Location: dashboard.php");
@@ -35,18 +38,18 @@ if (isset($_POST['login'])) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ayaka Login</title>
+  <title>Kuromi Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap');
     body {
       font-family: 'Outfit', sans-serif;
-      background: linear-gradient(to bottom, #c9f0ff, #eefbff);
+      background: linear-gradient(to bottom right, #1e1b2e, #5e4b8b, #f8b4d6);
       background-size: cover;
       overflow: hidden;
     }
     .glow {
-      text-shadow: 0 0 10px #d4f1ff, 0 0 20px #89c2d9;
+      text-shadow: 0 0 10px #f9a8d4, 0 0 20px #a78bfa;
     }
     .snowflake {
       position: fixed;
@@ -65,16 +68,26 @@ if (isset($_POST['login'])) {
   </style>
 </head>
 <body class="flex items-center justify-center min-h-screen text-white relative">
-  <form method="POST" class="bg-[#2c3e50]/80 p-8 rounded-2xl shadow-2xl w-full max-w-sm space-y-5 z-10 backdrop-blur-md border border-blue-300">
-    <h1 class="text-3xl font-bold text-center text-blue-100 glow">Ayaka Login</h1>
-    <input name="email" type="email" required placeholder="Email" class="w-full p-3 rounded bg-white/10 text-white border border-blue-300 placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-    <input name="password" type="password" required placeholder="Password" class="w-full p-3 rounded bg-white/10 text-white border border-blue-300 placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
-    <button name="login" class="w-full bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 py-2 rounded text-white font-semibold transition-all duration-300">Login</button>
-    <p class="text-sm text-center text-blue-200">Don't have an account? <a href="register.php" class="text-purple-300 hover:underline">Register</a></p>
+
+  <form method="POST" class="bg-[#2a223a]/80 p-8 rounded-2xl shadow-2xl w-full max-w-sm space-y-5 z-10 backdrop-blur-md border border-pink-300">
+    <h1 class="text-3xl font-bold text-center text-pink-200 glow">Login</h1>
+    <input name="email" type="email" required placeholder="Email"
+      class="w-full p-3 rounded bg-white/10 text-white border border-pink-300 placeholder-pink-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+    <input name="password" type="password" required placeholder="Password"
+      class="w-full p-3 rounded bg-white/10 text-white border border-pink-300 placeholder-pink-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+    <button name="login"
+      class="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-600 py-2 rounded text-white font-semibold transition-all duration-300">
+      Login
+    </button>
+    <p class="text-sm text-center text-pink-200">Don't have an account?
+      <a href="register.php" class="text-purple-300 hover:underline">Register</a>
+    </p>
   </form>
+
   <?php if ($error): ?>
     <p class='text-red-200 absolute bottom-5 text-center w-full'><?= $error ?></p>
   <?php endif; ?>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const snowContainer = document.createElement("div");
@@ -85,10 +98,10 @@ if (isset($_POST['login'])) {
         snowflake.style.left = Math.random() * 100 + "vw";
         snowflake.style.animationDuration = (5 + Math.random() * 10) + "s";
         snowflake.style.fontSize = (12 + Math.random() * 18) + "px";
-        snowflake.textContent = ["❄️", "❅", "❆"][Math.floor(Math.random() * 3)];
+        snowflake.textContent = ["🖤", "🎀", "✨"][Math.floor(Math.random() * 3)];
         snowContainer.appendChild(snowflake);
       }
     });
   </script>
 </body>
-</html> 
+</html>
