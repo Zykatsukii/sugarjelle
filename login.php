@@ -1,3 +1,36 @@
+<?php
+ob_start();
+session_start();
+// Static users array for demo (in-memory, resets on reload)
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
+        ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
+    ];
+}
+$error = '';
+if (isset($_POST['login'])) {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $found = false;
+    foreach ($_SESSION['users'] as $user) {
+        if ($user['email'] === $email && password_verify($password, $user['password'])) {
+            $_SESSION['user'] = $user;
+            $found = true;
+            break;
+        }
+    }
+    if ($found) {
+        // Add a notification
+        if (!isset($_SESSION['notifications'])) $_SESSION['notifications'] = [];
+        $_SESSION['notifications'][] = ["user_email" => $email, "message" => "Logged in!"];
+        header("Location: dashboard.php");
+        exit;
+    } else {
+        $error = "Invalid email or password.";
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,7 +65,6 @@
   </style>
 </head>
 <body class="flex items-center justify-center min-h-screen text-white relative">
-
   <form method="POST" class="bg-[#2c3e50]/80 p-8 rounded-2xl shadow-2xl w-full max-w-sm space-y-5 z-10 backdrop-blur-md border border-blue-300">
     <h1 class="text-3xl font-bold text-center text-blue-100 glow">Ayaka Login</h1>
     <input name="email" type="email" required placeholder="Email" class="w-full p-3 rounded bg-white/10 text-white border border-blue-300 placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
@@ -40,42 +72,9 @@
     <button name="login" class="w-full bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 py-2 rounded text-white font-semibold transition-all duration-300">Login</button>
     <p class="text-sm text-center text-blue-200">Don't have an account? <a href="register.php" class="text-purple-300 hover:underline">Register</a></p>
   </form>
-
-  <?php
-  session_start();
-  if (!isset($_SESSION['users'])) {
-      $_SESSION['users'] = [
-          ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
-          ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
-      ];
-  }
-  $error = '';
-  if (isset($_POST['login'])) {
-      $email = $_POST['email'];
-      $password = $_POST['password'];
-      $found = false;
-      foreach ($_SESSION['users'] as $user) {
-          if ($user['email'] === $email && password_verify($password, $user['password'])) {
-              $_SESSION['user'] = $user;
-              $found = true;
-              break;
-          }
-      }
-      if ($found) {
-          // Add a notification
-          if (!isset($_SESSION['notifications'])) $_SESSION['notifications'] = [];
-          $_SESSION['notifications'][] = ["user_email" => $email, "message" => "Logged in!"];
-          header("Location: dashboard.php");
-          exit;
-      } else {
-          $error = "Invalid email or password.";
-      }
-  }
-  ?>
   <?php if ($error): ?>
     <p class='text-red-200 absolute bottom-5 text-center w-full'><?= $error ?></p>
   <?php endif; ?>
-
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const snowContainer = document.createElement("div");
@@ -91,6 +90,5 @@
       }
     });
   </script>
-
 </body>
 </html> 
