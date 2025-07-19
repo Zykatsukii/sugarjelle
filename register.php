@@ -1,3 +1,40 @@
+<?php
+ob_start();
+session_start();
+// Static users array for demo (in-memory, resets on reload)
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
+        ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
+    ];
+}
+$success = $error = '';
+if (isset($_POST['register'])) {
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    if ($password !== $confirm_password) {
+        $error = "Passwords do not match.";
+    } else {
+        $password_hashed = password_hash($password, PASSWORD_DEFAULT);
+        // Check if email exists
+        $exists = false;
+        foreach ($_SESSION['users'] as $user) {
+            if ($user['email'] === $email) {
+                $exists = true;
+                break;
+            }
+        }
+        if ($exists) {
+            $error = "Email already exists ❔";
+        } else {
+            $_SESSION['users'][] = ["name" => $name, "email" => $email, "password" => $password_hashed];
+            $success = "Registered successfully 🌸 <a href='login.php' class='underline'>Login</a>";
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,42 +80,6 @@
     <p class="text-sm text-center text-blue-200">Already have an account? <a href="login.php" class="text-purple-300 hover:underline">Login</a></p>
   </form>
 
-  <?php
-  session_start();
-  // Static users array for demo (in-memory, resets on reload)
-  if (!isset($_SESSION['users'])) {
-      $_SESSION['users'] = [
-          ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
-          ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
-      ];
-  }
-  $success = $error = '';
-  if (isset($_POST['register'])) {
-      $name = $_POST['name'];
-      $email = $_POST['email'];
-      $password = $_POST['password'];
-      $confirm_password = $_POST['confirm_password'];
-      if ($password !== $confirm_password) {
-          $error = "Passwords do not match.";
-      } else {
-          $password_hashed = password_hash($password, PASSWORD_DEFAULT);
-          // Check if email exists
-          $exists = false;
-          foreach ($_SESSION['users'] as $user) {
-              if ($user['email'] === $email) {
-                  $exists = true;
-                  break;
-              }
-          }
-          if ($exists) {
-              $error = "Email already exists ❔";
-          } else {
-              $_SESSION['users'][] = ["name" => $name, "email" => $email, "password" => $password_hashed];
-              $success = "Registered successfully 🌸 <a href='login.php' class='underline'>Login</a>";
-          }
-      }
-  }
-  ?>
   <?php if ($success): ?>
     <p class='text-green-200 absolute bottom-5 text-center w-full'><?= $success ?></p>
   <?php elseif ($error): ?>
