@@ -1,10 +1,15 @@
 <?php
-include 'db.php';
+session_start();
 if (!isset($_SESSION['user'])) {
     header("Location: index.php");
     exit;
 }
-$res = $conn->query("SELECT * FROM users");
+// Static mock users array
+$users = [
+    ["name" => "Alice Example", "email" => "alice@example.com"],
+    ["name" => "Bob Demo", "email" => "bob@demo.com"],
+    ["name" => "Charlie Test", "email" => "charlie@test.com"],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,14 +103,14 @@ $res = $conn->query("SELECT * FROM users");
   <section class="bg-white/60 backdrop-blur-lg p-8 rounded-2xl shadow-xl border border-blue-200">
     <h3 class="text-3xl font-bold text-blue-800 mb-6 text-center">All Users</h3>
 
-    <?php if ($res->num_rows): ?>
+    <?php if (count($users)): ?>
       <ul class="space-y-4">
-        <?php while ($row = $res->fetch_assoc()): ?>
+        <?php foreach ($users as $row): ?>
           <li class="bg-white p-4 rounded-lg border border-blue-100 shadow hover:shadow-md transition">
             <p class="text-lg text-blue-900 font-semibold"><?= htmlspecialchars($row['name']) ?></p>
             <p class="text-sm text-blue-600"><?= htmlspecialchars($row['email']) ?></p>
           </li>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
       </ul>
     <?php else: ?>
       <p class="text-center italic text-blue-700">No users found.</p>

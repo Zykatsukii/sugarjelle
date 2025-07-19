@@ -1,12 +1,44 @@
 <?php
-include 'db.php';
+session_start();
 if (!isset($_SESSION['user'])) header("Location: index.php");
+$uid = $_SESSION['user']['email'];
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
+        ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
+    ];
+}
+if (!isset($_SESSION['bookings'])) {
+    $_SESSION['bookings'] = [
+        ["user_email" => "alice@example.com", "title" => "Sample Booking", "description" => "Test booking", "booking_date" => date("Y-m-d H:i")],
+    ];
+}
+$totalBookings = count(array_filter($_SESSION['bookings'], function($b) use ($uid) { return $b['user_email'] === $uid; }));
+$totalUsers = count($_SESSION['users']);
+$bookings = array_filter($_SESSION['bookings'], function($b) use ($uid) { return $b['user_email'] === $uid; });
+$usersList = $_SESSION['users'];
 
-$uid = $_SESSION['user']['id'];
-$totalBookings = $conn->query("SELECT COUNT(*) as count FROM bookings WHERE user_id = $uid")->fetch_assoc()['count'] ?? 0;
-$totalUsers = $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'] ?? 0;
-$bookings = $conn->query("SELECT * FROM bookings WHERE user_id = $uid ORDER BY booking_date DESC");
-$usersList = $conn->query("SELECT id, name, email FROM users ORDER BY name ASC");
+// Handle delete booking
+if (isset($_GET['delete_booking'])) {
+    $delete_idx = intval($_GET['delete_booking']);
+    if (isset($_SESSION['bookings'][$delete_idx]) && $_SESSION['bookings'][$delete_idx]['user_email'] === $uid) {
+        unset($_SESSION['bookings'][$delete_idx]);
+        $_SESSION['bookings'] = array_values($_SESSION['bookings']); // reindex
+        header('Location: dashboard.php');
+        exit;
+    }
+}
+// Handle edit booking
+if (isset($_POST['edit_booking'])) {
+    $edit_idx = intval($_POST['edit_idx']);
+    if (isset($_SESSION['bookings'][$edit_idx]) && $_SESSION['bookings'][$edit_idx]['user_email'] === $uid) {
+        $_SESSION['bookings'][$edit_idx]['title'] = $_POST['title'];
+        $_SESSION['bookings'][$edit_idx]['description'] = $_POST['description'];
+        $_SESSION['bookings'][$edit_idx]['booking_date'] = $_POST['booking_date'];
+        header('Location: dashboard.php');
+        exit;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -120,19 +152,32 @@ $usersList = $conn->query("SELECT id, name, email FROM users ORDER BY name ASC")
   <!-- Bookings List -->
   <div x-show="showBookings" x-transition class="bg-white/40 backdrop-blur-lg shadow-xl rounded-2xl p-8 border border-indigo-300" style="display: none;">
     <h3 class="text-2xl font-semibold text-indigo-700 mb-6">Your Bookings</h3>
-    <?php if ($bookings->num_rows): ?>
+    <?php if (count($bookings)): ?>
       <div class="space-y-5">
-        <?php while ($booking = $bookings->fetch_assoc()): ?>
+        <?php foreach ($bookings as $idx => $booking): ?>
           <div class="bg-white rounded-xl p-5 border border-indigo-200 shadow hover:shadow-xl transition duration-300">
-            <h4 class="text-lg font-semibold text-indigo-800"><?= htmlspecialchars($booking['title']) ?></h4>
-            <p class="text-indigo-700 text-sm mt-1"><?= htmlspecialchars($booking['description']) ?></p>
-            <p class="text-xs text-indigo-500 mt-3">📅 <?= date('F j, Y h:i A', strtotime($booking['booking_date'])) ?></p>
-            <div class="mt-4 flex space-x-6">
-              <a href="edit_booking.php?id=<?= $booking['id'] ?>" class="text-blue-600 hover:text-blue-800 font-semibold underline">Edit</a>
-              <a href="delete_booking.php?id=<?= $booking['id'] ?>" onclick="return confirm('Are you sure?');" class="text-red-600 hover:text-red-800 font-semibold underline">Delete</a>
-            </div>
+            <?php if (isset($_GET['edit_booking']) && $_GET['edit_booking'] == $idx): ?>
+              <form method="POST" class="space-y-2">
+                <input type="hidden" name="edit_idx" value="<?= $idx ?>">
+                <input name="title" value="<?= htmlspecialchars($booking['title']) ?>" class="w-full border p-2 rounded" required>
+                <textarea name="description" class="w-full border p-2 rounded" required><?= htmlspecialchars($booking['description']) ?></textarea>
+                <input name="booking_date" value="<?= htmlspecialchars($booking['booking_date']) ?>" class="w-full border p-2 rounded" required>
+                <div class="flex gap-2">
+                  <button type="submit" name="edit_booking" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+                  <a href="dashboard.php" class="bg-gray-300 px-4 py-2 rounded">Cancel</a>
+                </div>
+              </form>
+            <?php else: ?>
+              <h4 class="text-lg font-semibold text-indigo-800"><?= htmlspecialchars($booking['title']) ?></h4>
+              <p class="text-indigo-700 text-sm mt-1"><?= htmlspecialchars($booking['description']) ?></p>
+              <p class="text-xs text-indigo-500 mt-3">📅 <?= date('F j, Y h:i A', strtotime($booking['booking_date'])) ?></p>
+              <div class="mt-4 flex space-x-6">
+                <a href="dashboard.php?edit_booking=<?= $idx ?>" class="text-blue-600 hover:text-blue-800 font-semibold underline">Edit</a>
+                <a href="dashboard.php?delete_booking=<?= $idx ?>" onclick="return confirm('Are you sure you want to delete this booking?');" class="text-red-600 hover:text-red-800 font-semibold underline">Delete</a>
+              </div>
+            <?php endif; ?>
           </div>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
       </div>
     <?php else: ?>
       <p class="text-center text-indigo-600 italic text-sm">You don’t have any bookings yet.</p>
@@ -142,14 +187,14 @@ $usersList = $conn->query("SELECT id, name, email FROM users ORDER BY name ASC")
   <!-- Users List -->
   <div x-show="showUsers" x-transition class="bg-white/40 backdrop-blur-lg shadow-xl rounded-2xl p-8 border border-teal-300 text-indigo-800 mt-6" style="display: none;">
     <h3 class="text-2xl font-semibold text-teal-800 mb-4">All Users</h3>
-    <?php if ($usersList->num_rows): ?>
+    <?php if (count($usersList)): ?>
       <ul class="space-y-4">
-        <?php while ($user = $usersList->fetch_assoc()): ?>
+        <?php foreach ($usersList as $user): ?>
           <li class="bg-white rounded-xl p-4 border border-teal-200 shadow hover:shadow-md transition">
             <h4 class="font-semibold text-lg text-blue-700"><?= htmlspecialchars($user['name']) ?></h4>
             <p class="text-sm text-indigo-600"><?= htmlspecialchars($user['email']) ?></p>
           </li>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
       </ul>
     <?php else: ?>
       <p class="italic text-sm text-center text-gray-600">No users found.</p>

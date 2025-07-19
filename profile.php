@@ -1,57 +1,56 @@
 <?php
-include 'db.php';
-
+session_start();
 if (!isset($_SESSION['user'])) {
     header("Location: index.php");
     exit;
 }
-
-$uid = $_SESSION['user']['id'];
+$uid = $_SESSION['user']['email'];
 $user = $_SESSION['user'];
 $success = '';
 $error = '';
-
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        ["name" => "Alice Example", "email" => "alice@example.com", "password" => password_hash("password1", PASSWORD_DEFAULT)],
+        ["name" => "Bob Demo", "email" => "bob@demo.com", "password" => password_hash("password2", PASSWORD_DEFAULT)],
+    ];
+}
 if (isset($_POST['update'])) {
-    $name = $conn->real_escape_string($_POST['name']);
-    $email = $conn->real_escape_string($_POST['email']);
+    $name = $_POST['name'];
+    $email = $_POST['email'];
     $password = $_POST['password'];
     $confirm = $_POST['password_confirmation'];
-
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email address.";
     } elseif ($password && $password !== $confirm) {
         $error = "Passwords do not match.";
     } else {
-        $updateQuery = "UPDATE users SET name='$name', email='$email'";
-        if (!empty($password)) {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $updateQuery .= ", password='$hashed'";
+        foreach ($_SESSION['users'] as &$u) {
+            if ($u['email'] === $uid) {
+                $u['name'] = $name;
+                $u['email'] = $email;
+                if (!empty($password)) {
+                    $u['password'] = password_hash($password, PASSWORD_DEFAULT);
+                }
+                $_SESSION['user'] = $u;
+                $success = "Profile updated successfully.";
+                $uid = $email;
+                break;
+            }
         }
-        $updateQuery .= " WHERE id=$uid";
-
-        if ($conn->query($updateQuery)) {
-            $_SESSION['user']['name'] = $name;
-            $_SESSION['user']['email'] = $email;
-            $success = "Profile updated successfully.";
-        } else {
-            $error = "Failed to update profile.";
-        }
+        unset($u);
     }
 }
-
 if (isset($_POST['delete'])) {
     $password = $_POST['confirm_password'];
-    $result = $conn->query("SELECT password FROM users WHERE id = $uid");
-    $hashed = $result->fetch_assoc()['password'];
-
-    if (password_verify($password, $hashed)) {
-        $conn->query("DELETE FROM users WHERE id = $uid");
-        session_destroy();
-        header("Location: index.php");
-        exit;
-    } else {
-        $error = "Incorrect password. Account not deleted.";
+    foreach ($_SESSION['users'] as $i => $u) {
+        if ($u['email'] === $uid && password_verify($password, $u['password'])) {
+            unset($_SESSION['users'][$i]);
+            session_destroy();
+            header("Location: index.php");
+            exit;
+        }
     }
+    $error = "Incorrect password. Account not deleted.";
 }
 ?>
 

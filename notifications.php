@@ -1,13 +1,19 @@
 <?php
-include 'db.php'; // Session start assumed inside this file
-
+session_start();
 if (!isset($_SESSION['user'])) {
     header("Location: index.php");
     exit;
 }
-
-$uid = intval($_SESSION['user']['id']);
-$res = $conn->query("SELECT * FROM notifications WHERE user_id=$uid ORDER BY id DESC");
+$uid = $_SESSION['user']['email'];
+if (!isset($_SESSION['notifications'])) {
+    $_SESSION['notifications'] = [
+        ["user_email" => "alice@example.com", "message" => "Welcome Alice!"],
+        ["user_email" => "bob@demo.com", "message" => "Welcome Bob!"],
+    ];
+}
+$my_notifications = array_filter($_SESSION['notifications'], function($n) use ($uid) {
+    return $n['user_email'] === $uid;
+});
 ?>
 
 <!DOCTYPE html>
@@ -38,18 +44,17 @@ $res = $conn->query("SELECT * FROM notifications WHERE user_id=$uid ORDER BY id 
     <main class="flex-1 ml-64 p-8">
         <h3 class="text-2xl font-semibold text-blue-800 mb-4">🔔 Your Notifications</h3>
         
-        <div class="space-y-3">
-            <?php if ($res && $res->num_rows > 0): ?>
-                <?php while ($row = $res->fetch_assoc()): ?>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100 hover:shadow-md transition duration-200">
-                        <p class="text-blue-900"><?= htmlspecialchars($row['message']) ?></p>
-                        <p class="text-sm text-gray-500 mt-1"><?= date("F j, Y, g:i a", strtotime($row['created_at'])) ?></p>
-                    </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <p class="text-gray-600 italic">No notifications found.</p>
-            <?php endif; ?>
-        </div>
+        <?php if (count($my_notifications)): ?>
+      <ul class="space-y-4">
+        <?php foreach ($my_notifications as $n): ?>
+          <li class="bg-white p-4 rounded-lg border border-blue-100 shadow hover:shadow-md transition">
+            <p class="text-blue-900 font-semibold"><?= htmlspecialchars($n['message']) ?></p>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php else: ?>
+      <p class="text-center italic text-blue-700">No notifications found.</p>
+    <?php endif; ?>
     </main>
 
 </body>

@@ -1,35 +1,37 @@
 <?php
-include 'db.php';
-
+session_start();
 if (!isset($_SESSION['user'])) {
     header("Location: index.php");
     exit;
 }
-
-// ✅ FORM HANDLER
+if (!isset($_SESSION['bookings'])) {
+    $_SESSION['bookings'] = [
+        ["user_email" => "alice@example.com", "title" => "Sample Booking", "description" => "Test booking", "booking_date" => date("Y-m-d H:i")],
+    ];
+}
+if (!isset($_SESSION['notifications'])) {
+    $_SESSION['notifications'] = [];
+}
+$error = '';
 if (isset($_POST['book'])) {
-    $uid = $_SESSION['user']['id'];
-    $title = $conn->real_escape_string($_POST['title']);
-    $desc = $conn->real_escape_string($_POST['description']);
-    $date = $conn->real_escape_string($_POST['booking_date']);
-
+    $uid = $_SESSION['user']['email'];
+    $title = $_POST['title'];
+    $desc = $_POST['description'];
+    $date = $_POST['booking_date'];
     if (!empty($title) && !empty($desc) && !empty($date)) {
         $datetime = explode(' ', $date);
-        $booking_date = $datetime[0];
-        $booking_time = $datetime[1] ?? '00:00:00';
-
-        $insert = $conn->query("INSERT INTO bookings (user_id, title, description, booking_date, booking_time) VALUES ($uid, '$title', '$desc', '$booking_date', '$booking_time')");
-
-        if ($insert) {
-            $msg = "New booking: $title on $booking_date at $booking_time";
-            $conn->query("INSERT INTO notifications (user_id, message) VALUES ($uid, '$msg')");
-
-            $_SESSION['success'] = "Booking created successfully!";
-            header("Location: booking.php");
-            exit;
-        } else {
-            $error = "Error: " . $conn->error;
-        }
+        $booking_date = $datetime[0] . (isset($datetime[1]) ? ' ' . $datetime[1] : ' 00:00:00');
+        $_SESSION['bookings'][] = [
+            "user_email" => $uid,
+            "title" => $title,
+            "description" => $desc,
+            "booking_date" => $booking_date
+        ];
+        $msg = "New booking: $title on $booking_date";
+        $_SESSION['notifications'][] = ["user_email" => $uid, "message" => $msg];
+        $_SESSION['success'] = "Booking created successfully!";
+        header("Location: booking.php");
+        exit;
     } else {
         $error = "Please fill in all fields.";
     }
